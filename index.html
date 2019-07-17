@@ -1,0 +1,179 @@
+<html>
+
+<head>
+  <title>视频直播</title>
+  <meta charset="utf-8">
+  <link href="flash/video-js.css" rel="stylesheet">
+  <!-- If you'd like to support IE8 -->
+  <!-- <script src="videojs-ie8.min.js"></script> -->
+
+  <!-- vxgplayer -->
+  <script type="text/javascript" src="vxg/vxgplayer-1.8.54.min.js"></script>
+  <link href="vxg/vxgplayer-1.8.54.min.css" rel="stylesheet" />
+
+  <style>
+    body {
+      margin: 0;
+    }
+
+    .video-js,
+    .flash-container,
+    #vxg_media_player {
+      width: 100% !important;
+      height: 100% !important;
+      /* display: none; */
+    }
+
+    .flash-container,
+    #vxg_media_player {
+      display: none; 
+    }
+
+    .embed {
+      position: absolute;
+      z-index: 1000;
+    }
+  </style>
+
+
+</head>
+
+<body>
+  <embed class="embed" type="application/x-shockwave-flash" width="100%" height="100%">
+  <div class='flash-container'></div>
+
+
+  <div id="vxg_media_player" class="vxgplayer" url="rtsp://192.168.1.204" aspect-ratio latency="3000000" autostart
+    controls avsync></div>
+
+
+
+  <script src="flash/video.js"></script>
+  <script>
+
+    var vxg = document.querySelector('#vxg_media_player');
+    var embed = document.querySelector('.embed');
+    var flashContainer = document.querySelector('.flash-container');
+    var flashTemplate = `<video id="my-video" class="video-js vjs-default-skin vjs-big-play-centered" poster="./timg.jpg" controls
+      preload="auto">
+      <source id='sourc' type="rtmp/flv">
+      <!-- 如果上面的rtmp流无法播放，就播放hls流 -->
+      <!-- <source src="http://10.10.5.119/live/livestream.m3u8" type='application/x-mpegURL'> -->
+      <p class="vjs-no-js">播放视频需要启用 JavaScript，推荐使用支持HTML5的浏览器访问。
+        To view this video please enable JavaScript, and consider upgrading to a web browser that
+        <a href="http://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a>
+      </p>
+    </video>
+  `;
+
+
+    var flashPlayer = null;
+    var proxy = { _url: '' };
+
+
+
+
+
+    function flashPlay() {
+      embed.style.display = 'none';
+      flashContainer.innerHTML = flashTemplate;
+
+
+      setTimeout(() => {
+        flashPlayer = videojs('my-video');
+        flashContainer.style.display = 'block';
+        //  flashPlayer.el().style.display = 'block ';
+        flashPlayer.ready(() => {
+          reloadURL(flashPlayer, proxy.url);
+        });
+      }, 200)
+
+    }
+
+
+    function reloadURL(player, url) {
+      player.src(url);
+      player.load(url);
+      player.play();
+    }
+
+    setTimeout(()=>{
+     proxy.url = '';
+    },7000)
+
+    setTimeout(()=>{
+       proxy.url = 'rtmp://192.168.1.247:15070/live/test';
+    },14000) 
+
+    Object.defineProperty(proxy, 'url', {
+      set: function (value) {
+        this._url = value;
+        if (/rtsp/.test(value)) {//vxg
+          //--------------------------------------
+          if (flashPlayer) flashPlayer.dispose();
+          flashContainer.style.display = 'none';
+          embed.style.display = 'none';
+          vxg.style.display = 'block';
+        }
+        else { //flash
+          embed.style.display = 'block';
+          vxg.style.display = 'none';
+
+
+          var flashTick = setInterval(() => {
+            var flashState = !!navigator.plugins['Shockwave Flash'];
+            if (flashState) {
+              clearInterval(flashTick);
+              if (flashPlayer) flashPlayer.dispose();
+              flashPlay();
+            }
+          }, 300);
+
+          setTimeout(() => {
+            clearInterval(flashTick);
+          }, 60000);
+
+        }
+      },
+      get: function () {
+        return this._url;
+      }
+    });
+
+    proxy.url = 'rtmp://192.168.1.247:15070/live/test';
+
+
+    //vxg----------------------
+    document.addEventListener('DOMContentLoaded', function () {
+      console.log('===player.src=' + vxgplayer('vxg_media_player').src());
+      console.log('===player.volume()=' + vxgplayer('vxg_media_player').volume());
+      console.log('===player.autohide()=' + vxgplayer('vxg_media_player').autohide());
+      console.log('===player.isMute()=' + vxgplayer('vxg_media_player').isMute());
+      console.log('===player.isPlaying()=' + vxgplayer('vxg_media_player').isPlaying());
+      console.log('===player.autoreconnect()=' + vxgplayer('vxg_media_player').autoreconnect());
+      vxgplayer('vxg_media_player').onReadyStateChange(function (onreadyState) {
+        console.log("player LOADED: versionPLG=" + vxgplayer('vxg_media_player').versionPLG() + " versionAPP=" + vxgplayer('vxg_media_player').versionAPP());
+        vxgplayer('vxg_media_player').play();
+      });
+      vxgplayer('vxg_media_player').onError(function (onErr) {
+        console.log("player ERROR: " + vxgplayer('vxg_media_player').error() + " decoder:" + vxgplayer('vxg_media_player').errorDecoder());
+      });
+    })
+
+
+    // proxy.url = 'rtsp://192.168.1.152';
+    // setTimeout(() => {
+    //   proxy.url = 'rtmp://192.168.1.247:15070/live/test';
+    // }, 7000)
+
+    // setTimeout(() => {
+    //   proxy.url = 'rtsp://192.168.1.152';
+    // }, 14000)
+    // setTimeout(() => {
+    //   proxy.url = 'rtmp://192.168.1.247:15070/live/test';
+    // }, 21000)
+
+  </script>
+</body>
+
+</html>
